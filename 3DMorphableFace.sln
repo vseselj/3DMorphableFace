@@ -5,6 +5,8 @@ VisualStudioVersion = 16.0.30204.135
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LandmarksFromVideo", "LandmarksFromVideo\LandmarksFromVideo.vcxproj", "{13BEAD26-7F58-4D84-ACAD-3E819E7F535D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChangeVideoResolution", "ChangeVideoResolution\ChangeVideoResolution.vcxproj", "{B1441564-BF71-4C20-8DA5-E107265EF989}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{13BEAD26-7F58-4D84-ACAD-3E819E7F535D}.Release|x64.Build.0 = Release|x64
 		{13BEAD26-7F58-4D84-ACAD-3E819E7F535D}.Release|x86.ActiveCfg = Release|Win32
 		{13BEAD26-7F58-4D84-ACAD-3E819E7F535D}.Release|x86.Build.0 = Release|Win32
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Debug|x64.ActiveCfg = Debug|x64
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Debug|x64.Build.0 = Debug|x64
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Debug|x86.ActiveCfg = Debug|Win32
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Debug|x86.Build.0 = Debug|Win32
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Release|x64.ActiveCfg = Release|x64
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Release|x64.Build.0 = Release|x64
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Release|x86.ActiveCfg = Release|Win32
+		{B1441564-BF71-4C20-8DA5-E107265EF989}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
