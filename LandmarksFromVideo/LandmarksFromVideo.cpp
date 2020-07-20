@@ -34,13 +34,13 @@ using namespace boost::filesystem;
 using eos::core::Landmark;
 using eos::core::LandmarkCollection;
 
-vector<pair <int, int>> get_directories(const string& s, string& id)
+vector<pair <int, int>> get_video_info(path s, string& yt_id)
 {
     vector<pair <int, int>> frame_pos;
     for (auto& p : recursive_directory_iterator(s))
         if (is_directory(p.path()))
         {
-            if (p.path().string().find(id) != string::npos)
+            if (p.path().string().find(yt_id) != string::npos)
             {
                 std::ifstream start_frame_file(p.path().string()+"\\startframe.txt"), n_frame_file(p.path().string() + "\\nframe.txt");
                 pair<int, int> start_n;
@@ -53,6 +53,71 @@ vector<pair <int, int>> get_directories(const string& s, string& id)
             }
         }
     return frame_pos;
+}
+
+inline string get_yt_id(path subdir)
+{
+    return subdir.stem().string();
+}
+
+path get_video(path subdir, string res, string yt_id)
+{
+    
+    path video;
+    for (auto& p : directory_iterator(subdir))
+    {
+        if (is_regular_file(p.path()))
+        {
+            if (extension(p.path()) == ".mp4")
+            {
+                bool q = p.path().string().find(res) != string::npos;
+                if (q)
+                {
+                    video = p.path();
+                }
+            }
+        }
+    }
+    return video;
+}
+
+vector<path> get_subdir(path dir)
+{
+    vector<path> subdirs;
+    for (auto& p : directory_iterator(dir))
+        if (is_directory(p.path()))
+        {
+            subdirs.push_back(p.path());
+        }
+    return subdirs;
+}
+vector<Rect> best_face(vector<Rect> faces, Rect prev_face)
+{
+    vector<Rect> best_fit;
+    double min_d = 1E10;
+    int min_ind;
+    for (int i = 0; i < faces.size(); i++)
+    {
+        double d = sqrt(pow((faces[i].x - prev_face.x), 2) + pow((faces[i].y - prev_face.y), 2));
+        if (d < min_d)
+        {
+            min_d = d;
+            min_ind = i;
+        }
+    }
+    best_fit.push_back(faces[min_ind]);
+    return best_fit;
+}
+
+void log_mesh(std::ofstream& file, core::Mesh& m, int frame)
+{
+    vector<int> vertex_ind = { 398, 315, 413, 329, 825, 736, 812, 841, 693, 411, 264, 431, 416, 423, 828, 817, 442, 404 };
+    file << to_string(frame) << ",";
+    for (int i = 0; i < vertex_ind.size(); i++)
+    {
+        file << to_string(m.vertices[i].x()) << ',' << to_string(m.vertices[i].y()) << ',' << to_string(m.vertices[i].z());
+    }
+    file << endl;
 }
 
 int main()
@@ -95,91 +160,129 @@ int main()
     const fitting::ContourLandmarks ibug_contour = fitting::ContourLandmarks::load(mappingsfile);
     // The edge topology is used to speed up computation of the occluding face contour fitting:
     const morphablemodel::EdgeTopology edge_topology = morphablemodel::load_edge_topology(edgetopologyfile);
-
-
+    
     /*Face and landmark detector*/
-    string id = "_Lm6l2vaF5o";
-    string resolution = "480p";
-    string extension = ".mp4";
-    vector<pair<int, int>> frame_pos= get_directories("C:\\Projects\\Python projects\\DeepFake\\obama_data", id);
     path opencv_dir = path(getenv("OPENCV_DIR"));
     path faceDetectorPath = (opencv_dir.parent_path()).parent_path() / "etc" / "haarcascades" / "haarcascade_frontalface_alt2.xml";
     path landmarkDetectorPath = (opencv_dir.parent_path()).parent_path() / "etc" / "FaceLandmarksModels" / "lbfmodel.yaml";
+    path video_data_root = "C:\\obama_dataset\\video";
+    path video_info_root = "C:\\obama_dataset\\obama_data_SO";
+    path mouth_shapes_root = "C:\\obama_dataset\\mouth_shapes\\480p\\haar";
+    string resolution = "480p";
+    string extension = ".mp4";
+    vector<path> video_dirs = get_subdir(video_data_root);
     CascadeClassifier faceDetector(faceDetectorPath.string());
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
-    string video_dir= "E:\\obama_dataset\\video";
-    VideoCapture video = VideoCapture(video_dir+"\\"+id+"\\"+id+"_"+resolution+extension);
-    path dataFilePath = path("E:\\obama_dataset\\facial_landmarks\\"+id);
-    create_directory(dataFilePath);
-    int part = 1;
-
     
-    for (vector<pair<int, int>>::const_iterator iter = frame_pos.begin(); iter != frame_pos.end(); ++iter)
+    for (int i = 0; i < 50; i++)
     {
-        //path subdir = dataFilePath / to_string(part);
-        part++;
-        //create_directory(subdir);
-        video.set(CV_CAP_PROP_POS_FRAMES, iter->first);
-        int frame_ctr = iter->first;
-        int endFrames = iter->first+iter->second;
-        while (frame_ctr < endFrames)
+        string yt_id = get_yt_id(video_dirs[i]);
+        cout << "Procesing: " << yt_id << endl;
+        path video_path = get_video(video_dirs[i], resolution, yt_id);
+        vector<pair<int, int>> frame_pos = get_video_info(video_info_root, yt_id);
+        path save_folder_root = mouth_shapes_root / yt_id;
+        if (is_directory(save_folder_root))
         {
-            Mat frame, grayFrame;
-            bool status = video.read(frame);
-            if (status)
-            {
-                vector<Rect> faces;
-                cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
-                faceDetector.detectMultiScale(grayFrame, faces,1.1,5);
-                if (faces.size()>1)
-                {
-                    cout << "More faces detected" << endl;
-                    faces.resize(1);
-                }
-                vector<vector<Point2f>> landmarks;
-                bool success = landmarkDetector->fit(grayFrame, faces, landmarks);
-                if (success)
-                {
-                    
-                    /*string fileName = "frame" + std::to_string(frame_ctr) + ".pts";
-                    string frameName = "frame" + std::to_string(frame_ctr) + ".png";
-                    std::ofstream dataFile;
-                    dataFile.open((subdir / fileName).string(), std::ofstream::out | std::ofstream::app);
-                    dataFile << "version: 1" << '\n';
-                    dataFile << "n_points:  68" << '\n';
-                    dataFile << "{" << '\n';
-                    for (int i = 0; i < landmarks.size(); i++)
-                    {
-                        for (int j = 0; j < landmarks[i].size(); j++)
-                        {
-                            dataFile << landmarks[i][j].x << " " << landmarks[i][j].y << '\n';
-                        }
-                    }
-                    dataFile << "}" << '\n';
-                    dataFile.close();
-                    imwrite((subdir / frameName).string(), grayFrame);*/
-                    LandmarkCollection<Eigen::Vector2f> landmarksM;
-                    landmarksM.reserve(68);
-                    for (int j = 0; j < 68; j++)
-                    {
-                        Landmark<Eigen::Vector2f> landmark;
-                        landmark.name = to_string(j + 1);
-                        landmark.coordinates[0] = landmarks[0][j].x - 1.0f;
-                        landmark.coordinates[1] = landmarks[0][j].y - 1.0f;
-                        landmarksM.emplace_back(landmark);
-                    }
-                    core::Mesh mesh;
-                    fitting::RenderingParameters rendering_params;
-                    std::tie(mesh, rendering_params) = fitting::fit_shape_and_pose(
-                        morphable_model_with_expressions, landmarksM, landmark_mapper, grayFrame.cols, grayFrame.rows, edge_topology,
-                        ibug_contour, model_contour, 5, cpp17::nullopt, 30.0f);
-                }
-                cout << frame_ctr << "/" << endFrames-1 << endl;
-                frame_ctr++;
-            }
+            cout << "ALREADY PROCESSED!!!" << '\n';
         }
-    }
+        else
+        {
+            create_directories(save_folder_root);
+            VideoCapture video = VideoCapture(video_path.string());
+            int part = 1;
+            for (vector<pair<int, int>>::const_iterator iter = frame_pos.begin(); iter != frame_pos.end(); ++iter)
+            {
+                path subdir = save_folder_root / to_string(part);
+                part++;
+                create_directory(subdir);
+                video.set(CV_CAP_PROP_POS_FRAMES, iter->first);
+                int frame_ctr = iter->first;
+                int endFrames = iter->first + iter->second;
+                Rect prev_face;
+                bool process = true;
+                std::ofstream data_log;
+                path data_log_path = subdir / "mouth_shapes.csv";
+                data_log.open(data_log_path.string(), std::ios::out | std::ios::app);
+                while ((frame_ctr <= endFrames) && process)
+                {
+                    Mat frame, grayFrame;
+                    bool status = video.read(frame);
+                    if (status)
+                    {
+                        vector<Rect> faces, all_faces;
+                        bool first_frame = frame_ctr == iter->first;
+                        cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+                        faceDetector.detectMultiScale(grayFrame, all_faces, 1.2, 6);
+                        switch (all_faces.size())
+                        {
+                        case 0:
+                        {
+                            if (first_frame)
+                            {
+                                process = false;
+                                std::ofstream out;
+                                path out_path = subdir / "report.txt";
+                                out.open(out_path.string(), std::ios::out | std::ios::app);
+                                out << "This part of the video is skipped!\n";
+                                out.close();
+                            }
+                            else
+                            {
+                                faces.push_back(prev_face);
+                            }
+                        }
+                        break;
+                        case 1:
+                        {
+                            faces = all_faces;
+                        }
+                        break;
+                        default:
+                        {
+                            if (first_frame)
+                            {
+                                faces = best_face(all_faces, prev_face);
+                            }
+                            else
+                            {
+                                faces.push_back(all_faces[0]);
+                            }
+                        }
+                        break;
+                        }
+                        if (process)
+                        {
+                            prev_face = faces[0];
+                            vector<vector<Point2f>> landmarks;
+                            bool success = landmarkDetector->fit(grayFrame, faces, landmarks);
+                            if (success)
+                            {
+                                LandmarkCollection<Eigen::Vector2f> landmarksM;
+                                landmarksM.reserve(68);
+                                for (int j = 0; j < 68; j++)
+                                {
+                                    Landmark<Eigen::Vector2f> landmark;
+                                    landmark.name = to_string(j + 1);
+                                    landmark.coordinates[0] = landmarks[0][j].x - 1.0f;
+                                    landmark.coordinates[1] = landmarks[0][j].y - 1.0f;
+                                    landmarksM.emplace_back(landmark);
+                                }
+                                core::Mesh mesh;
+                                fitting::RenderingParameters rendering_params;
 
-    destroyAllWindows();
+                                tie(mesh, rendering_params) = fitting::fit_shape_and_pose(morphable_model_with_expressions, landmarksM, landmark_mapper, grayFrame.cols, grayFrame.rows, edge_topology, ibug_contour, model_contour, 5, cpp17::nullopt, 30.0f);
+                                log_mesh(data_log, mesh, frame_ctr);
+                            }
+                            cout << '\r' << std::setw(5)<< frame_ctr << "/" << std::setw(5)<< endFrames << std::flush;
+                            frame_ctr++;
+                        }
+                        
+                    }
+                }
+            }
+            destroyAllWindows();
+        }
+        cout<< "Finished: " << yt_id << endl;
+    }
 }

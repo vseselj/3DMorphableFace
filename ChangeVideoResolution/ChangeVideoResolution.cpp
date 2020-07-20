@@ -69,7 +69,7 @@ int main()
         }
         else
         {
-            cout << "ALLREADY CREATED!!" << endl;
+            cout << "ALREADY CREATED!!" << endl;
         }
     }
     cout << "Errors:: " << result << endl;
