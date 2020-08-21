@@ -80,4 +80,6 @@ int main()
     CascadeClassifier faceDetector(faceDetectorPath.string());
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
+
+    path target_video = "";
 }
