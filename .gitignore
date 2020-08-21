@@ -1,3 +1,8 @@
 .vs
 x64
 *.user
+*.filters
+/LandmarksFromVideo/LandmarksFromVideo.vcxproj.filters
+/FacialDetection/FacialDetection.vcxproj.filters
+/ChangeVideoResolution/*.filters
+/Best3DModels/Best3DModels.vcxproj.filters
