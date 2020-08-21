@@ -91,6 +91,7 @@ vector<path> get_subdir(path dir)
         }
     return subdirs;
 }
+
 vector<Rect> best_face(vector<Rect> faces, Rect prev_face)
 {
     vector<Rect> best_fit;
@@ -115,7 +116,14 @@ void log_mesh(std::ofstream& file, core::Mesh& m, int frame)
     file << to_string(frame) << ",";
     for (int i = 0; i < vertex_ind.size(); i++)
     {
-        file << to_string(m.vertices[i].x()) << ',' << to_string(m.vertices[i].y()) << ',' << to_string(m.vertices[i].z());
+        if (i != vertex_ind.size() - 1)
+        {
+            file << to_string(m.vertices[i].x()) << ',' << to_string(m.vertices[i].y()) << ',' << to_string(m.vertices[i].z()) << ',';
+        }
+        else
+        {
+            file << to_string(m.vertices[i].x()) << ',' << to_string(m.vertices[i].y()) << ',' << to_string(m.vertices[i].z());
+        }
     }
     file << endl;
 }
@@ -165,9 +173,9 @@ int main()
     path opencv_dir = path(getenv("OPENCV_DIR"));
     path faceDetectorPath = (opencv_dir.parent_path()).parent_path() / "etc" / "haarcascades" / "haarcascade_frontalface_alt2.xml";
     path landmarkDetectorPath = (opencv_dir.parent_path()).parent_path() / "etc" / "FaceLandmarksModels" / "lbfmodel.yaml";
-    path video_data_root = "C:\\obama_dataset\\video";
-    path video_info_root = "C:\\obama_dataset\\obama_data_SO";
-    path mouth_shapes_root = "C:\\obama_dataset\\mouth_shapes\\480p\\haar";
+    path video_data_root = "E:\\obama_dataset\\video";
+    path video_info_root = "E:\\obama_dataset\\obama_data_SO";
+    path mouth_shapes_root = "E:\\obama_dataset\\mouth_shapes\\480p\\haar";
     string resolution = "480p";
     string extension = ".mp4";
     vector<path> video_dirs = get_subdir(video_data_root);
@@ -175,10 +183,10 @@ int main()
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
     
-    for (int i = 0; i < 50; i++)
+    for (int i = 0; i < video_dirs.size(); i++)
     {
         string yt_id = get_yt_id(video_dirs[i]);
-        cout << "Procesing: " << yt_id << endl;
+        cout << "Procesing: " << yt_id <<" with ind: "<<i<< endl;
         path video_path = get_video(video_dirs[i], resolution, yt_id);
         vector<pair<int, int>> frame_pos = get_video_info(video_info_root, yt_id);
         path save_folder_root = mouth_shapes_root / yt_id;
@@ -283,6 +291,6 @@ int main()
             }
             destroyAllWindows();
         }
-        cout<< "Finished: " << yt_id << endl;
+        cout<< "\nFinished: " << yt_id << endl;
     }
 }
