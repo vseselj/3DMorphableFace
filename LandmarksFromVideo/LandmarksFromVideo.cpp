@@ -118,11 +118,11 @@ void log_mesh(std::ofstream& file, core::Mesh& m, int frame)
     {
         if (i != vertex_ind.size() - 1)
         {
-            file << to_string(m.vertices[i].x()) << ',' << to_string(m.vertices[i].y()) << ',' << to_string(m.vertices[i].z()) << ',';
+            file << to_string(m.vertices[vertex_ind[i]].x()) << ',' << to_string(m.vertices[vertex_ind[i]].y()) << ',' << to_string(m.vertices[vertex_ind[i]].z()) << ',';
         }
         else
         {
-            file << to_string(m.vertices[i].x()) << ',' << to_string(m.vertices[i].y()) << ',' << to_string(m.vertices[i].z());
+            file << to_string(m.vertices[vertex_ind[i]].x()) << ',' << to_string(m.vertices[vertex_ind[i]].y()) << ',' << to_string(m.vertices[vertex_ind[i]].z());
         }
     }
     file << endl;
@@ -183,7 +183,7 @@ int main()
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
     
-    for (int i = 0; i < video_dirs.size(); i++)
+    for (int i = 0; i < 100; i++)
     {
         string yt_id = get_yt_id(video_dirs[i]);
         cout << "Procesing: " << yt_id <<" with ind: "<<i<< endl;
