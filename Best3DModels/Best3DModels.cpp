@@ -22,7 +22,9 @@
 #include "Eigen/Core"
 
 #include <boost/filesystem.hpp>
+#include <boost/tokenizer.hpp>
 #include <iostream>
+#include <string>
 
 using namespace eos;
 using namespace std;
@@ -32,6 +34,7 @@ using namespace boost::filesystem;
 using eos::core::Landmark;
 using eos::core::LandmarkCollection;
 
+typedef boost::tokenizer< boost::escaped_list_separator<char> > Tokenizer;
 vector<int> vertex_ind = { 398, 315, 413, 329, 825, 736, 812, 841, 693, 411, 264, 431, 416, 423, 828, 817, 442, 404 };
 
 vector<Rect> best_face(vector<Rect> faces, Rect prev_face)
@@ -52,16 +55,45 @@ vector<Rect> best_face(vector<Rect> faces, Rect prev_face)
     return best_fit;
 }
 
-void add_shape(vector<vector<Point3f>>& mouth_shapes, core::Mesh& m)
+void add_shape(vector<pair<vector<Point3f>,int>>& mouth_shapes, core::Mesh& m,int frame)
 {
-    /*
+    
     vector<Point3f> new_mouth_shape;
     for (int i = 0; i < vertex_ind.size(); i++)
     {
         Point3f new_point;
-        new_point.x = 
-    }*/
-    
+        new_point.x = m.vertices[vertex_ind[i]].x();
+        new_point.y = m.vertices[vertex_ind[i]].y();
+        new_point.z = m.vertices[vertex_ind[i]].z();
+        new_mouth_shape.push_back(new_point);
+    }
+    mouth_shapes.push_back(pair<vector<Point3f>, int>(new_mouth_shape, frame));
+}
+
+inline double calculate_error(vector<Point3f> shape1, vector<Point3f> shape2)
+{
+    double err = 0;
+    for (int i = 0; i < shape1.size(); i++)
+    {
+        err += sqrt(pow(shape1[i].x - shape2[i].x, 2) + pow(shape1[i].y - shape2[i].y, 2) + pow(shape1[i].z - shape2[i].z, 2));
+    }
+    return err;
+}
+
+int find_best_shape(vector<pair<vector<Point3f>, int>>& mouth_shapes, vector<Point3f> RNN_mouth_shape)
+{
+    double min_err = INFINITY;
+    int best_frame;
+    for (int i = 0; i < mouth_shapes.size(); i++)
+    {
+        double err = calculate_error(mouth_shapes[i].first, RNN_mouth_shape);
+        if (err<min_err)
+        {
+            best_frame = mouth_shapes[i].second;
+            min_err = err;
+        }
+    }
+    return best_frame;
 }
 
 
@@ -105,7 +137,7 @@ int main()
     const fitting::ContourLandmarks ibug_contour = fitting::ContourLandmarks::load(mappingsfile);
     // The edge topology is used to speed up computation of the occluding face contour fitting:
     const morphablemodel::EdgeTopology edge_topology = morphablemodel::load_edge_topology(edgetopologyfile);
-    vector<vector<Point3f>> mouth_shapes;
+    vector<pair<vector<Point3f>, int>> mouth_shapes;
 
     /*Face and landmark detector*/
     path opencv_dir = path(getenv("OPENCV_DIR"));
@@ -145,6 +177,7 @@ int main()
                     landmark.coordinates[1] = landmarks[0][j].y - 1.0f;
                     landmarksM.emplace_back(landmark);
                 }
+                // Create models
                 core::Mesh mesh;
                 fitting::RenderingParameters rendering_params;
                 tie(mesh, rendering_params) = fitting::fit_shape_and_pose(morphable_model_with_expressions, landmarksM, landmark_mapper, grayFrame1.cols, grayFrame1.rows, edge_topology, ibug_contour, model_contour, 5, cpp17::nullopt, 30.0f);
@@ -159,7 +192,35 @@ int main()
                 outputfile.replace_extension(".isomap.png");
                 imwrite(outputfile.string(), core::to_mat(isomap));
                 cout << '\r' << std::setw(5) << i << "/" << std::setw(5) << end_frame << std::flush;
+                add_shape(mouth_shapes, mesh, i);
             }
         }
+    }
+    destroyAllWindows();
+    path RNN_mouth_shapes_path = "";
+    std::ifstream RNN_mouth_shapes(RNN_mouth_shapes_path.string());
+    string line;
+    vector<string> vec;
+    
+    path best_shape_folder = "";
+    while (std::getline(RNN_mouth_shapes, line))
+    {
+        vector<Point3f> RNN_mouth_shape;
+        Tokenizer toc(line);
+        vec.assign(toc.begin(), toc.end());
+        for (int i = 1; i < vec.size(); i += 3)
+        {
+            Point3f point;
+            point.x = stof(vec[i]);
+            point.y = stof(vec[i+1]);
+            point.z = stof(vec[i+2]);
+            RNN_mouth_shape.push_back(point);
+        }
+        int best_frame = find_best_shape(mouth_shapes, RNN_mouth_shape);
+        string inputbasename = face_models_path.string() + "\\" + to_string(best_frame);
+        string outputbasename = best_shape_folder.string() + "\\" + to_string(best_frame);
+        copy_file(inputbasename + ".png", outputbasename + ".png");
+        copy_file(inputbasename + ".obj", outputbasename + ".obj");
+        copy_file(inputbasename + ".isomap.png", outputbasename + ".isomap.png");
     }
 }

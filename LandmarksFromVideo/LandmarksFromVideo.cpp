@@ -173,9 +173,9 @@ int main()
     path opencv_dir = path(getenv("OPENCV_DIR"));
     path faceDetectorPath = (opencv_dir.parent_path()).parent_path() / "etc" / "haarcascades" / "haarcascade_frontalface_alt2.xml";
     path landmarkDetectorPath = (opencv_dir.parent_path()).parent_path() / "etc" / "FaceLandmarksModels" / "lbfmodel.yaml";
-    path video_data_root = "E:\\obama_dataset\\video";
-    path video_info_root = "E:\\obama_dataset\\obama_data_SO";
-    path mouth_shapes_root = "E:\\obama_dataset\\mouth_shapes\\480p\\haar";
+    path video_data_root = "C:\\obama_dataset\\video";
+    path video_info_root = "C:\\obama_dataset\\obama_data_SO";
+    path mouth_shapes_root = "C:\\obama_dataset\\mouth_shapes\\480p\\haar";
     string resolution = "480p";
     string extension = ".mp4";
     vector<path> video_dirs = get_subdir(video_data_root);
@@ -183,7 +183,7 @@ int main()
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
     
-    for (int i = 0; i < 100; i++)
+    for (int i = 260; i < video_dirs.size(); i++)
     {
         string yt_id = get_yt_id(video_dirs[i]);
         cout << "Procesing: " << yt_id <<" with ind: "<<i<< endl;
