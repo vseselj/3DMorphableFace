@@ -147,7 +147,7 @@ int main()
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
 
-    path target_video = "C:\\obama_dataset\\video\\_csblV1PJ4o\\Weekly Address_ Climate Change Can No Longer Be Ignored.mp4";
+    path target_video = "C:\\obama_dataset\\video\\_csblV1PJ4o\\_csblV1PJ4o_480p.mp4";
     path face_models_path = "C:\\Users\\vseselj\\Desktop\\out";
     VideoCapture video = VideoCapture(target_video.string());
     int start_frame = 300;
@@ -197,18 +197,18 @@ int main()
         }
     }
     destroyAllWindows();
-    path RNN_mouth_shapes_path = "";
+    path RNN_mouth_shapes_path = "C:\\Users\\vseselj\\Desktop\\mouth_shapes_test\\nIxM8rL5GVE.csv";
     std::ifstream RNN_mouth_shapes(RNN_mouth_shapes_path.string());
     string line;
     vector<string> vec;
-    
-    path best_shape_folder = "";
+    int frame_ctr = 1;
+    path best_shape_folder = "C:\\Users\\vseselj\\Desktop\\best_shapes";
     while (std::getline(RNN_mouth_shapes, line))
     {
         vector<Point3f> RNN_mouth_shape;
         Tokenizer toc(line);
         vec.assign(toc.begin(), toc.end());
-        for (int i = 1; i < vec.size(); i += 3)
+        for (int i = 0; i < vec.size(); i += 3)
         {
             Point3f point;
             point.x = stof(vec[i]);
@@ -218,9 +218,11 @@ int main()
         }
         int best_frame = find_best_shape(mouth_shapes, RNN_mouth_shape);
         string inputbasename = face_models_path.string() + "\\" + to_string(best_frame);
-        string outputbasename = best_shape_folder.string() + "\\" + to_string(best_frame);
-        copy_file(inputbasename + ".png", outputbasename + ".png");
+        string outputbasename = best_shape_folder.string() + "\\" + to_string(frame_ctr);
+        cout <<"\nBest frame:: "<< best_frame  << "\nFrame counter:: " << frame_ctr << '\n';
+        copy_file(inputbasename + ".mtl", outputbasename + ".mtl");
         copy_file(inputbasename + ".obj", outputbasename + ".obj");
         copy_file(inputbasename + ".isomap.png", outputbasename + ".isomap.png");
+        frame_ctr++;
     }
 }

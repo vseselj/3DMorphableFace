@@ -182,8 +182,7 @@ int main()
     CascadeClassifier faceDetector(faceDetectorPath.string());
     Ptr<FacemarkLBF> landmarkDetector = FacemarkLBF::create();
     landmarkDetector->loadModel(landmarkDetectorPath.string());
-    
-    for (int i = 260; i < video_dirs.size(); i++)
+    for (int i = 0; i < video_dirs.size(); i++)
     {
         string yt_id = get_yt_id(video_dirs[i]);
         cout << "Procesing: " << yt_id <<" with ind: "<<i<< endl;
@@ -289,7 +288,7 @@ int main()
                     }
                 }
             }
-            destroyAllWindows();
+            cv::destroyAllWindows();
         }
         cout<< "\nFinished: " << yt_id << endl;
     }
